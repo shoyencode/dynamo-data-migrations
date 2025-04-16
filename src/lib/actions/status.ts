@@ -1,11 +1,11 @@
-import * as migrationsDir from '../env/migrationsDir';
 import * as migrationsDb from '../env/migrationsDb';
+import * as migrationsDir from '../env/migrationsDir';
 
-export async function status(profile = 'default') {
+export async function status(profile = 'default', env = 'default') {
     const ddb = await migrationsDb.getDdb(profile);
     const fileNamesInMigrationFolder = migrationsDir.getFileNamesInMigrationFolder();
 
-    const migrationsLog = await migrationsDb.getAllMigrations(ddb);
+    const migrationsLog = await migrationsDb.getAllMigrations(ddb, env);
 
     const statusTable = await Promise.all(
         fileNamesInMigrationFolder.map(async (fileName) => {
