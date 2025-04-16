@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { Option, program } from 'commander';
 import Table from 'cli-table3';
+import { Option, program } from 'commander';
 import _, { isEmpty } from 'lodash';
 import packageJson from '../../package.json';
-import { initAction, createAction, upAction, statusAction, downAction } from '../lib/migrateDynamo';
+import { createAction, downAction, initAction, statusAction, upAction } from '../lib/migrateDynamo';
 
 class ERROR extends Error {
     migrated?: string[];
@@ -25,6 +25,10 @@ function printStatusTable(statusItems: { fileName: string; appliedAt: string }[]
 }
 const profileOption = new Option('--profile <string>', 'AWS credentials and configuration to be used')
     .env('AWS_PROFILE')
+    .default('default');
+
+const envOption = new Option('--env <string>', 'Environment to be used')
+    .env('ENV')
     .default('default');
 
 program
@@ -54,10 +58,11 @@ program
 program
     .command('up')
     .addOption(profileOption)
+    .addOption(envOption)
     .description('run all pending database migrations against a provided profile.')
     .action(async (option) => {
         try {
-            const migrated = await upAction(option.profile);
+            const migrated = await upAction(option.profile, option.env);
             printMigrated(migrated, 'MIGRATED UP');
         } catch (error) {
             console.error(error);
@@ -69,6 +74,7 @@ program
 program
     .command('down')
     .addOption(profileOption)
+    .addOption(envOption)
     .option(
         '--shift <n>',
         'Number of down shift to perform. 0 will rollback all changes',
@@ -78,7 +84,7 @@ program
     .description('undo the last applied database migration against a provided profile.')
     .action(async (option) => {
         try {
-            const migrated = await downAction(option.profile, option.shift);
+            const migrated = await downAction(option.profile, option.env, option.shift);
             printMigrated(migrated, 'MIGRATED DOWN');
         } catch (error) {
             console.error(error);
@@ -88,10 +94,11 @@ program
 program
     .command('status')
     .addOption(profileOption)
+    .addOption(envOption)
     .description('print the changelog of the database against a provided profile')
     .action(async (option) => {
         try {
-            const statusItems = await statusAction(option.profile);
+            const statusItems = await statusAction(option.profile, option.env);
             printStatusTable(statusItems);
         } catch (error) {
             console.error(error);
